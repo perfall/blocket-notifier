@@ -6,41 +6,64 @@ import time
 import smtplib
 import sys
 
+# User Constants
+MAIL_TO = ""                    # Mail address to send the e-mail notification to
+MAIL_FROM = ""                  # Mail address to send the e-mail notification from
+PASSWORD = ""                   # Password for the sender mail
+WAIT_TIME = 300                 # Amount of time in seconds between
+SMTP_HOST = "smtp.gmail.com"    # SMTP host location (standard is for Gmail)
+SMTP_PORT = 587                 # SMTP host port (standard is for Gmail)
+DEBUG_MODE = False
+
+old_item_id = "init_id"
+is_first_occurrence = True
+
+
 def main(url):
-    old_item_number = "default1"
-    new_item_number = "default2"
-    first = True
+    if not url:
+        print("Provided URL is empty - exiting")
+        sys.exit()
+    if not MAIL_TO or not MAIL_FROM or not PASSWORD:
+        print("One or many constants not set - exiting")
+        sys.exit()
 
     while True:
+        # Find the item
         response = urlopen(url)
-        htmlparser = etree.HTMLParser()
-        tree = etree.parse(response, htmlparser)
-        new_item_number = tree.xpath('//article[@itemtype="http://schema.org/Offer"]/@id')[0]
+        parser = etree.HTMLParser()
+        tree = etree.parse(response, parser)
+        new_item_id = tree.xpath('//article[@itemtype="http://schema.org/Offer"]/@id')[0]
 
-        print("CHECKING")
-        if new_item_number != old_item_number:
-            old_item_number = new_item_number
-            if first:
-                first = False
+        if DEBUG_MODE:
+            print("Found item with id: [" + new_item_id + "]")
+
+        # If new item is found
+        if new_item_id != old_item_id:
+            old_item_id = new_item_id
+
+            if is_first_occurrence:
+                is_first_occurrence = False
                 continue
-            title = tree.xpath('//*[@id="' + new_item_number + '"]/div/h1/a/@title')[0]
-            print(title)
 
-            mailto = '' # Which mail to send the notification to
-            mailfrom = '' # Which mail to send the notification from
-            password = '' # Password for the sender-mail
+            if DEBUG_MODE:
+                title = tree.xpath("//*[@id=" + new_item_id + "]/div/h1/a/@title")[0]
+                print("Found new item with title: [" + title + "]")
 
+            # Create message
             content = url
-            message = 'Subject: %s\n\n%s' % ("New article at blocket", content)
+            message = "Subject: %s\n\n%s" % ("New article at blocket", content)
 
-            server = smtplib.SMTP('smtp.gmail.com:587')
+            # Send message to user
+            server = smtplib.SMTP(SMTP_HOST)
             server.starttls()
-            server.login(mailfrom, password)
-            server.sendmail(mailfrom, mailto, message)
+            server.login(MAIL_FROM, PASSWORD)
+            server.sendmail(MAIL_FROM, MAIL_TO, message)
             server.quit()
-            print("Mail sent")
 
-        time.sleep(300)
+            if DEBUG_MODE:
+                print("Mail sent to: [" + MAIL_TO + "]")
+
+        time.sleep(WAIT_TIME)
 
 if __name__ == "__main__":
     main(sys.argv[1])
