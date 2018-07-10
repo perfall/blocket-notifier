@@ -1,5 +1,7 @@
 # blocket-notifier
 
+#### This project is probably not working well at the moment, will try to update it in the future.
+
 #### Step-by-step guide:
 
 1. Open python file and edit the mail address and password (lines 10-12)
